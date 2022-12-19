@@ -1,67 +1,92 @@
 import { gql } from 'apollo-server-express';
-
 export default gql`
-    type Token {
-        token : String
-        user : User
-    }
+  enum genderType {
+      MALE
+      FEMALE
+  }
 
-    type User {
-        id : ID
-        firstName: String
-        lastName: String
-        userName: String
-        email: String
-        phone: Number
-        age:Int
-        gender: String
-        dob: Date
-        isActive: Boolean
-        createdAt: Date
-        updatedAt: Date
-    }
+  enum ActivityType {
+      NotVeryActive
+      LightActive
+      Active
+  }
+  enum typeOfGoalNutrition {
+      Easy
+      Normal
+      Hard
+      Extreme
+  }
+  enum goalType {
+      LosingWeight
+      IncreaseBodyConfidence
+      FeelMoreEnergetic
+      ImprovePhysicalWellBeing
+      FollowMedicalAdvice
+  }
+  enum languageType {
+      HINDI
+      ENGLISH
+      GUJARATI
+  }
+  enum bloodGroupType {
+      AB_POSITIVE
+      O_POSITIVE
+      B_POSITIVE
+      A_POSITIVE
+      A_NEGATIVE
+      O_NEGATIVE
+      AB_NEGATIVE
+      B_NEGATIVE
+  }
 
-    input userInput {
-        firstName: String
-        lastName: String
-        userName: String
-        email: String
-        phone: Number
-        password: String
-        gender: String
-        dob: Date
-        isActive: Boolean
-    }
+  extend type Query {
+      getUserById(USERID: Number!): User
+      getAllUser: [User]
+      getAllUserWithPaginate(page:Number, limit:Number, search: String, sort: typeSort): paginateResponse
+  }
 
-    type UserPaginate {
-        count: Int
-        data: [User]
-    }
+  enum typeOrder {
+    ASC
+    DESC
+  }
 
-    input userSort {
-        key: String
-        type: Int
-    }
+  input typeSort {
+    key: String
+    order: typeOrder
+  }
 
-    extend type Query {
-        me : User
-        getUsers : [User]
-        getAllUsers(page: Int limit: Int filter: String sort: userSort) : UserPaginate
-    }
+  type paginateResponse {
+    count: Number 
+    data: [User]
+  }
 
-    extend type Mutation {
-        signUp (input : userInput!) : User
-        signIn (email : String!, password : String!) : Token!
-        updateUser(input : userInput!) : User
-        deleteUser(id : ID!) : Boolean!
-    }
+  type User {
+    USERID: Number
+    NAME: String
+  }
 
-    extend type Subscription {
-        userChange : UserSubscribe
-    }
+  input inputUser {
+    NAME: String
+  }
 
-    type UserSubscribe {
-        keyType : String
-        data: User
-    }
+  input updateInputUser {
+    USERID: Number!
+    NAME: String
+  }
+
+  extend type Mutation {
+    createUser(input: inputUser): User
+    insertManyUser(input: [inputUser]): Boolean
+    updateUser(input: updateInputUser): Boolean
+    deleteUser(USERID: Number!): Boolean
+  }
+
+  extend type Subscription {
+    userChange: UserSubscribe
+  }
+
+  type UserSubscribe {
+      keyType : String
+      data: User
+  }
 `;
