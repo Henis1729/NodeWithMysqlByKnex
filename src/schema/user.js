@@ -1,44 +1,5 @@
 import { gql } from 'apollo-server-express';
 export default gql`
-  enum genderType {
-      MALE
-      FEMALE
-  }
-
-  enum ActivityType {
-      NotVeryActive
-      LightActive
-      Active
-  }
-  enum typeOfGoalNutrition {
-      Easy
-      Normal
-      Hard
-      Extreme
-  }
-  enum goalType {
-      LosingWeight
-      IncreaseBodyConfidence
-      FeelMoreEnergetic
-      ImprovePhysicalWellBeing
-      FollowMedicalAdvice
-  }
-  enum languageType {
-      HINDI
-      ENGLISH
-      GUJARATI
-  }
-  enum bloodGroupType {
-      AB_POSITIVE
-      O_POSITIVE
-      B_POSITIVE
-      A_POSITIVE
-      A_NEGATIVE
-      O_NEGATIVE
-      AB_NEGATIVE
-      B_NEGATIVE
-  }
-
   extend type Query {
       getUserById(USERID: Number!): User
       getAllUser: [User]
@@ -86,7 +47,7 @@ export default gql`
   }
 
   type UserSubscribe {
-      keyType : String
-      data: User
+    keyType: String
+    data: User
   }
 `;

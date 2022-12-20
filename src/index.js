@@ -10,7 +10,6 @@ import { makeExecutableSchema } from "@graphql-tools/schema";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { graphqlUploadExpress } from "graphql-upload";
-import { insertPredefineData } from "./fixture";
 import { Buffer } from 'buffer';
 import cors from "cors";
 import fs from "fs";
@@ -32,83 +31,21 @@ const getMe = async (req) => {
   if (token) {
     try {
       const me = await jwt.verify(token, process.env.SECRET);
-      // return await models.User.findById(me.id);
+      const pool = await getPool();
+      pool.getConnection((err, connection) => {
+        if (err) throw err;
+        connection.query(`SELECT * FROM users WHERE USERID = ? `, [me?.id], (error, results) => {
+          if (error) reject(error);
+          me = results[0];
+        });
+      });
+      pool.releaseConnection(connection);
       return me;
     } catch (e) {
       throw new AuthenticationError("Session Invalid or expired.");
     }
   }
 };
-
-// var options = {
-//   method: "GET",
-//   hostname: "rest.coinapi.io",
-//   port: null,
-//   "path": "/v1/assets",
-//   headers: {
-//     "x-coinapi-key": "F52750E3-866F-424B-BFE5-8003F784EC63",
-//     "cache-control": "no-cache",
-//   },
-// };
-
-// var req = request(options, function (res) {
-//   var chunks = [];
-
-//   res.on("data", function (chunk) {
-//     chunks.push(chunk);
-//   });
-
-//   res.on("end", function () {
-//     var body = Buffer.concat(chunks);
-
-//     fs.writeFile(
-//       "/Users/deepak/Nikul/ApolloServerV3-master/assets.json",
-//       body.toString(),
-//       (err) => {
-//         if (err) console.log(err);
-//         else {
-//           console.log("File written successfully\n");
-//         }
-//       }
-//     );
-//   });
-// });
-
-// req.end();
-
-// const server = new ApolloServer({
-//     typeDefs : schema,
-//     resolvers,
-//     schemaDirectives,
-//     formatError : error => {
-//         const message = error.message
-//         .replace('SequelizeValidationError: ', '')
-//         .replace('Validation error: ', '')
-
-//       return { ...error, message };
-//     },
-//     formatResponse : response => response,
-//     context : async ({req, res}) => {
-//         if(req){
-//             const me = await getMe(req)
-//             return {
-//                 models,
-//                 me,
-//                 secret: process.env.SECRET
-//             }
-//         }
-//     }
-// })
-
-// server.applyMiddleware({ app, path : '/graphql' });
-// const httpServer = http.createServer(app);
-// server.installSubscriptionHandlers(httpServer)
-
-// connectDB().then( async () => {
-//     httpServer.listen({ port }, () => {
-//         console.log(`Apollo Server on http://localhost:${port}/graphql`);
-//     })
-// } )
 
 async function startServer() {
   const httpServer = createServer(app);
@@ -138,7 +75,8 @@ async function startServer() {
         };
       }
       if (req) {
-        const me = await getMe(req);
+        // const me = await getMe(req);
+        let me;
         return {
           pool,
           me,
@@ -157,6 +95,8 @@ async function startServer() {
           };
         },
       },
+
+
     ],
   });
 
@@ -176,9 +116,7 @@ async function startServer() {
   await server.start();
   app.use(graphqlUploadExpress());
   server.applyMiddleware({ app });
-
   connectDB().then(async () => {
-    // await insertPredefineData(models);
     httpServer.listen(process.env.PORT, () =>
       console.log(
         `Server is now running on http://localhost:${process.env.PORT}/graphql`

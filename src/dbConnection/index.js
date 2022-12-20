@@ -1,7 +1,7 @@
-import { getConnectionDB, getPool } from "./getConnection";
+import { getConnectionDB, getConnectionKnex, getPool } from "./getConnection";
 
 const connectDB = async () => {
-  getPool()
+  getConnectionKnex()
     .then((pool) => {
       console.log("Database connection successful");
       return pool;
