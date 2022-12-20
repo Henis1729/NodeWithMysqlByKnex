@@ -14,13 +14,22 @@ import { Buffer } from 'buffer';
 import cors from "cors";
 import fs from "fs";
 import { connectDB } from "./dbConnection";
-import { getPool } from "./dbConnection/getConnection";
+import { getPool, getConnectionKnex } from "./dbConnection/getConnection";
+import { findUsersBy } from "./data-access/user";
+import router from "./router";
 let ObjectId = mongoose.Types.ObjectId;
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
+app.use("/", express.static(process.env.ASSETS_STORAGE));
+app.use("/", router)
+
+// app.use('/graphql', (req, res, next) => {
+//   console.log(JSON.stringify(req.body.query))
+//   return next()
+// })
 
 ObjectId.prototype.valueOf = function () {
   return this.toString();
@@ -31,16 +40,8 @@ const getMe = async (req) => {
   if (token) {
     try {
       const me = await jwt.verify(token, process.env.SECRET);
-      const pool = await getPool();
-      pool.getConnection((err, connection) => {
-        if (err) throw err;
-        connection.query(`SELECT * FROM users WHERE USERID = ? `, [me?.id], (error, results) => {
-          if (error) reject(error);
-          me = results[0];
-        });
-      });
-      pool.releaseConnection(connection);
-      return me;
+      let user = await findUsersBy('USERID', me?.id)
+      return user;
     } catch (e) {
       throw new AuthenticationError("Session Invalid or expired.");
     }
@@ -75,8 +76,7 @@ async function startServer() {
         };
       }
       if (req) {
-        // const me = await getMe(req);
-        let me;
+        const me = await getMe(req);
         return {
           pool,
           me,
@@ -88,13 +88,33 @@ async function startServer() {
     plugins: [
       {
         async serverWillStart() {
+          console.log('Server starting!');
           return {
-            async drainServer() {
-              subscriptionServer.close();
+            // async drainServer() {
+            //   subscriptionServer.close();
+            // },
+            async serverWillStop(o) {
+              console.log("🚀 ~ file: index.js:92 ~ serverWillStop ~ o", o)
+              console.log('Response sendedd ');
             },
           };
         },
       },
+      // {
+      //   async requestDidStart(requestContext) {
+      //     console.log('Request started!');
+
+      //     return {
+      //       async parsingDidStart(requestContext) {
+      //         console.log('Parsing started!');
+      //       },
+
+      //       async validationDidStart(requestContext) {
+      //         console.log('Validation started!');
+      //       },
+      //     };
+      //   },
+      // }
 
 
     ],

@@ -1,49 +1,77 @@
-import jwt from "jsonwebtoken";
 import pubsub, { EVENTS } from "../subscriptions";
-import { addUser, addUsers, deleteStudent, findUser, listUser, listUserWithPaginate, updateUsers } from "../data-access/user";
-
-const generateToken = async (user, secret, expiresIn) => {
-    const { id, email } = user;
-    return await jwt.sign({ id, email }, secret, { expiresIn });
-};
+import { addUser, addUsers, deleteStudent, findUser, findUsersBy, listUser, listUserWithPaginate, updateUsers } from "../data-access/user";
+import { combineResolvers } from "graphql-resolvers";
+import { isAuthenticated } from "./authorization";
+import { convertHash, verifyPassword } from "../functions/createHashpw";
+import { generateToken } from "../functions/common";
 
 export default {
     Query: {
-        getUserById: (parent, { USERID }, { }) => {
+        getUserById: combineResolvers(isAuthenticated, (parent, { USERID }, { }) => {
             return new Promise(async (resolve, reject) => {
-                findUser(USERID).then((user) => {
-                    resolve(user)
-                }).catch(error => {
-                    reject(error)
-                })
+                if (!USERID) reject("Plase provide UserId ")
+                findUser(USERID)
+                    .then((user) => { resolve(user); })
+                    .catch(error => { reject(error); })
             });
-        },
+        }),
 
-        getAllUser: (parent, args, { }) => {
+        getAllUser: combineResolvers(isAuthenticated, (parent, args, { }) => {
             return new Promise(async (resolve, reject) => {
-                listUser().then((users) => {
-                    resolve(users)
-                }).catch((err) => {
-                    reject(err)
-                })
+                listUser()
+                    .then((users) => { resolve(users) })
+                    .catch((err) => { reject(err) })
             });
-        },
+        }),
 
-        getAllUserWithPaginate: (parent, args, { pool }) => {
+        getAllUserWithPaginate: combineResolvers(isAuthenticated, (parent, args, { pool }) => {
             return new Promise(async (resolve, reject) => {
-                let connection;
                 try {
                     let { page, limit, search, sort } = args;
+                    if (!page, !limit, !search, !sort) reject("Please Provide proper input ")
                     let paginatedUsers = await listUserWithPaginate(page, limit, search, sort)
                     resolve({ count: paginatedUsers?.count, data: paginatedUsers?.data })
                 } catch (error) {
                     reject(error);
                 }
             });
-        },
+        }),
     },
     Mutation: {
-        createUser: (parent, { input }, { pool }) => {
+        signUpUser: (parent, { input }, { pool }) => {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    if (!input.name || !input.password) reject("Please provide username and password")
+                    let password = convertHash(input.password);
+                    let addedUser = await addUser(input?.name, password);
+                    let token = generateToken({ id: addedUser?.USERID }, process.env.SECRET, "90d")
+                    resolve({ token: token, data: addedUser });
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        },
+
+        loginUser: (parent, { id, password }, { }) => {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    if (!id || !password) reject("Please provide username and password")
+                    let user = await findUsersBy('USERID', id)
+                    if (!user) reject("User not found")
+                    let resultPW = verifyPassword(password, user[0]?.password)
+                    if (resultPW) {
+                        let token = generateToken({ id: user[0]?.USERID }, process.env.SECRET, "90d")
+                        resolve({ token: token, data: user });
+                    }
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        },
+
+
+
+        createUser: combineResolvers(isAuthenticated, (parent, { input }, { pool }) => {
             return new Promise(async (resolve, reject) => {
                 try {
                     let addedUser = await addUser(input.NAME);
@@ -52,49 +80,43 @@ export default {
                     reject(error);
                 }
             });
-        },
+        }),
 
-        insertManyUser: (parent, { input }, { pool }) => {
+        insertManyUser: combineResolvers(isAuthenticated, (parent, { input }, { pool }) => {
             return new Promise(async (resolve, reject) => {
                 try {
-                    addUsers(input).then(data => {
-                        if (data) resolve(true);
-                    }).catch(error => {
-                        reject(error)
-                    })
+                    addUsers(input)
+                        .then(data => { if (data) resolve(true); })
+                        .catch(error => { reject(error) })
                 } catch (error) {
                     reject(error);
                 }
             });
-        },
+        }),
 
-        updateUser: (parent, { input }, { pool }) => {
+        updateUser: combineResolvers(isAuthenticated, (parent, { input }, { pool }) => {
             return new Promise(async (resolve, reject) => {
                 try {
-                    updateUsers(input?.NAME, input?.USERID).then(data => {
-                        if (data) resolve(true);
-                    }).catch(error => {
-                        reject(error)
-                    })
+                    updateUsers(input?.NAME, input?.USERID)
+                        .then(data => { if (data) resolve(true); })
+                        .catch(error => { reject(error) })
                 } catch (error) {
                     reject(error);
                 }
             });
-        },
+        }),
 
-        deleteUser: (parent, { USERID }, { pool }) => {
+        deleteUser: combineResolvers(isAuthenticated, (parent, { USERID }, { pool }) => {
             return new Promise(async (resolve, reject) => {
                 try {
-                    deleteStudent(USERID).then(data => {
-                        if (data) resolve(true)
-                    }).catch(error => {
-                        reject(error)
-                    })
+                    deleteStudent(USERID)
+                        .then(data => { if (data) resolve(true) })
+                        .catch(error => { reject(error) })
                 } catch (error) {
                     reject(error);
                 }
             });
-        },
+        }),
     },
     Subscription: {
         userChange: {

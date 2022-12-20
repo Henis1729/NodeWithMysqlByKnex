@@ -24,6 +24,7 @@ export default gql`
   type User {
     USERID: Number
     NAME: String
+    password: String
   }
 
   input inputUser {
@@ -35,11 +36,23 @@ export default gql`
     NAME: String
   }
 
+  type userTokenResponse {
+    token: String 
+    data: User
+  }
+  
+  input inputSignUp {
+    name: String
+    password: String
+  }
+
   extend type Mutation {
     createUser(input: inputUser): User
     insertManyUser(input: [inputUser]): Boolean
     updateUser(input: updateInputUser): Boolean
     deleteUser(USERID: Number!): Boolean
+    signUpUser(input: inputSignUp):userTokenResponse
+    loginUser(id: String , password: String): userTokenResponse
   }
 
   extend type Subscription {

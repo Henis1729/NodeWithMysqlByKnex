@@ -19,7 +19,7 @@ export const findUser = (id) => {
     return new Promise(async (resolve, reject) => {
         try {
             let knex = await getConnectionKnex()
-            let data = await knex.raw(`SELECT * FROM users WHERE USERID = ? `, id)
+            let data = await knex.raw(`SELECT * FROM users WHERE USERID = ? `, [id])
             resolve(data[0][0])
         } catch (error) {
             console.log("🚀 ~ file: user.js:22 ~ returnnewPromise ~ error", error)
@@ -46,7 +46,7 @@ export const findUsersBy = (prop, val) => {
     return new Promise(async (resolve, reject) => {
         try {
             let knex = await getConnectionKnex()
-            let resultData = await knex.raw(`SELECT * FROM users WHERE ${prop}=${val} `)
+            let resultData = await knex.raw(`SELECT * FROM users WHERE ${prop}='${val}' `)
             resolve(resultData[0])
         } catch (error) {
             console.log("🚀 ~ file: user.js:22 ~ returnnewPromise ~ error", error)
@@ -55,12 +55,12 @@ export const findUsersBy = (prop, val) => {
     })
 }
 
-export const addUser = (name) => {
+export const addUser = (name, password) => {
     return new Promise(async (resolve, reject) => {
         try {
             let knex = await getConnectionKnex()
             let id = await nanoid();
-            let insertedData = await knex.raw(`INSERT INTO users ( USERID, NAME ) VALUES ( ? , ? );`, [id, name])
+            let insertedData = await knex.raw(`INSERT INTO users ( USERID,NAME,password) VALUES ( ? , ? , ? );`, [id, name, password]);
             if (insertedData) {
                 let resultData = await knex.raw(`SELECT * FROM users WHERE USERID= ?`, [id])
                 if (resultData) resolve(resultData[0][0])
